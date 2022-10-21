@@ -1,0 +1,345 @@
+---
+title: "Lina's first case study"
+author: "Lina Sutkevičienė"
+date: "2022-10-21"
+output:
+  html_document: default
+  word_document: default
+---
+
+I imagined that I am a junior data analyst working on the marketing analyst team at Bellabeat, a high-tech manufacturer of health-focused products for women. The insights I discovered helped guide marketing strategy for the company. As far as I am really love to drink water and stay hydrated throughout the day, I've focused on one BellaBeat product: Spring. It is a water bottle that tracks daily water intake using smart technology to ensure that you are appropriately hydrated throughout the day. The Spring bottle connects to the Bellabeat app to track your hydration levels. I will use RStudio tool.
+
+**The trends**: Dehydration could lead to Mood and performance deceleration. In addition, Dehydration could cause heartrate issues such as palpitation because the amount of blood circulating through one's body, or blood volume, decreases when dehydrated. (1)
+
+Spring's app and smart technology can calculate the optimal amount of water for user's body and remind users of water intake base on the users age, height, weight, local weather, activity level, pregnancy or breastfeeding, help to remind users of water consumption. Thus, Spring, as smart bottle that can help remind users avoid dehydration, establish, and maintain healthy hydration habit, is considerable product for development in the market.
+
+**The goal of this case study**:
+
+These three questions will guide the future marketing program.
+
+*What are some trends in smart device usage?
+
+*How could these trends apply to Bellabeat customers?
+
+*How could these trends help influence Bellabeat marketing strategy?
+
+So, the main task is to identify trends in how consumers use non-Bellabeat smart devices to apply insights into Bellabeat’s marketing strategy.Identify trends in how consumers use non-Bellabeat smart devices to apply insights into Bellabeat’s marketing strategy.
+
+**Dataset**: The data source used for my case study is FitBit Fitness Tracker Data. This dataset is stored in Kaggle and was made available through Mobius. It has several limitation but the key factor is that it ROCC's. The data is from a reliable source, it is an original source, it is comprehensive and contains deep insights, the data is current to when the analysis is "being performed", and it is cited where the data is coming from and is for public use on Kaggle.
+
+**Acceptability and privacy**: Verifying the metadata of our dataset we can confirm it is open-source. The owner has dedicated the work to the public domain by waiving all of his or her rights to the work worldwide under copyright law, including all related and neighboring rights, to the extent allowed by law. You can copy, modify, distribute and perform the work, even for commercial purposes, all without asking permission.
+
+**Index**:
+
+[https://share.upmc.com/2014/09/importance-hydration-heart/https://share.upmc.com/2014/09/importance-hydration-heart/]
+
+**DATA ANALYSIS**
+
+**1.Installing packages and opening libraries.**
+```{r}
+library(tidyverse)
+library(here)
+library(skimr)
+library(janitor)
+library(lubridate)
+```
+
+
+**2. Importing datasets After checking all the datasets I chose the most relevant ones for my study. BUT before that, I opened my original .csv files just to make sure that all the information is clear and appropriate.**
+
+```{r,echo=FALSE}
+daily_activity <- read_csv("~/mokausi/Fitabase Data 4.12.16-5.12.16/dailyActivity_merged.csv")
+sleep_day <- read_csv("~/mokausi/Fitabase Data 4.12.16-5.12.16/sleepDay_merged.csv")
+hourly_intensities <- read_csv("~/mokausi/Fitabase Data 4.12.16-5.12.16/hourlyIntensities_merged.csv")
+library(readxl)
+weightLogInfo_merged <- read_excel("~/mokausi/weightLogInfo_merged.xlsx")
+View(weightLogInfo_merged)
+weight_log <- weightLogInfo_merged
+
+
+```
+**3. Preview my datasets**
+```{r}
+head(daily_activity)
+str(daily_activity)
+
+head(sleep_day)
+str(sleep_day)
+
+head(hourly_intensities)
+str(hourly_intensities)
+
+head(weight_log)
+str(weight_log)
+```
+
+The dates are in character format, date time format must be changed and also the columns for the dates are differently labeled so these things all need some formatting. Let's do that!
+
+**4. Exploring data **
+**4.1 Cleaning and formatting**
+
+First, I will make the column names formatting.
+
+```{r}
+daily_activity <- rename(daily_activity, Date = ActivityDate)
+sleep_day <- rename(sleep_day, Date = SleepDay)
+hourly_intensities <- rename(hourly_intensities, Date = ActivityHour)
+
+```
+Second, I am checking how many participats are in each dataset to make sure that my data is reliable.
+
+```{r}
+n_distinct(daily_activity$Id)
+n_distinct(sleep_day$Id)
+n_distinct(weight_log$Id)
+n_distinct(hourly_intensities$Id)
+```
+I see that there are only 8 participants in the weight data set. This is not enough information if I want to come up with reliable conclusions. So, at the Merging datasets steps I will combine this dataset into one data frame.
+
+**4.2 Searching for and removing duplicates**
+
+```{r}
+sum(duplicated(daily_activity))
+sum(duplicated(sleep_day))
+sum(duplicated(hourly_intensities))
+```
+
+and then: 
+
+```{r}
+daily_activity <- daily_activity %>%
+  distinct() %>%
+  drop_na()
+
+sleep_day <- sleep_day %>%
+  distinct() %>%
+  drop_na()
+
+hourly_intensities <- hourly_intensities %>%
+  distinct() %>%
+  drop_na()
+```
+
+Veryfying that all the duplicates were removed:
+
+```{r}
+sum(duplicated(sleep_day))
+```
+
+**4.3 Date formatting**
+
+```{r}
+daily_activity$Date <- as.Date(daily_activity$Date, format = "%m/%d/%Y")
+
+sleep_day$Date=as.POSIXct(sleep_day$Date, format="%m/%d/%Y %I:%M:%S %p", tz=Sys.timezone())
+
+weight_log$Date <- as.Date(weight_log$Date, format = "%m/%d/%Y")
+
+hourly_intensities$Date=as.POSIXct(hourly_intensities$Date, format="%m/%d/%Y %I:%M:%S %p", tz=Sys.timezone())
+```
+Also, I'll also separate the date and time into different columns in the daily activity and hourly intensities data frames.
+
+```{r}
+daily_activity$date <- format(daily_activity$Date, format = "%m/%d/%y")
+daily_activity$month <- format(daily_activity$Date, format = "%B")
+daily_activity$day <- format(daily_activity$Date, format = "%d")
+daily_activity$weekday <- format(daily_activity$Date, format = "%A")
+
+hourly_intensities$time <- format(hourly_intensities$Date, format = "%H:%M:%S")
+hourly_intensities$date <- format(hourly_intensities$Date, format = "%m/%d/%y")
+hourly_intensities$month <- format(hourly_intensities$Date, format = "%B")
+```
+
+Once again checking on duplicates:
+
+```{r}
+sum(duplicated(daily_activity))
+sum(duplicated(sleep_day))
+sum(duplicated(weight_log))
+```
+There are 3 duplicates in the sleep dataset, let's clear that:
+
+```{r}
+sleep_day <- sleep_day %>%
+  distinct() %>%
+  drop_na()
+```
+**5. Analyze**
+
+Now, then my data is clean I can start summarize it and then start analyzing.
+
+```{r}
+daily_activity %>%  
+  select(TotalSteps,
+         TotalDistance,
+         SedentaryMinutes, 
+         Calories) %>%
+  summary()
+
+daily_activity %>%  
+  select(VeryActiveMinutes,
+         FairlyActiveMinutes,
+         LightlyActiveMinutes) %>%
+  summary()
+
+sleep_day %>%  
+  select(TotalSleepRecords, 
+         TotalMinutesAsleep, 
+         TotalTimeInBed) %>%
+  summary()
+```
+**From the summaries we can gather a few conclusions:**
+
+1.Fitbit users walk on average 7,868 steps a day, which is in fact a fairly good amount. According to the US NIH (National Institutes of Health) website, death rates decline with more steps taken each day, until about 7,500 steps a day, when the benefits level off. 
+
+2. On average, Fitbit users sleep 6.98 hours a day. 
+
+3. Fitbit users are lightly active at least 3 hours per day.
+
+Let's create a data frame for the variable of the total activity minutes per user.
+
+```{r}
+daily_activity2 <- daily_activity %>%
+mutate(TotalActiveMinutes = LightlyActiveMinutes+FairlyActiveMinutes+VeryActiveMinutes)
+
+daily_activity2 %>%  
+  select(TotalActiveMinutes) %>%
+  summary()
+```
+
+In the sleep data frame, I will add a column for time spent awake in bed.
+
+```{r}
+sleep_day2 <- sleep_day %>%
+mutate(TimeAwakeInBed = TotalTimeInBed-TotalMinutesAsleep)
+
+sleep_day2 %>%  
+  select(TimeAwakeInBed) %>%
+  summary()
+```
+According to "Psychology Today", the more time we spend awake in bed, the more opportunity our brains have to associate the bed with being awake and frustrated. So reducing this will have a positive impact in people's sleep patterns. Fitbit users spend an average of 39.31 minutes awake in bed, which in my opinion can be lowered with the right tools.
+
+**6. Vizualizations**
+
+Merging: Here I will create merged dataset together with the dataset about the Weight as it had only 8 participants.
+
+
+```{r}
+merged_data <- merge(daily_activity2, sleep_day2, by=c('Id', 'Date'))
+merged_data2 <- merge(merged_data, weight_log, by=c('Id', 'Date'))
+head(merged_data)
+```
+Now let's create some visulizations to find out any correlations.
+
+Let's see whether steps we made correlates with the time we are sleeping. Here I made a scatterplot called Steps vs. Sleeps:
+
+
+```{r}
+ggplot(data=merged_data, aes(x=TotalSteps, y=TotalMinutesAsleep)) + 
+  geom_point() + geom_smooth(color="pink") + labs(title="Steps vs. Sleeps")
+```
+From this table I can see that there is no correlation, but let's take a look whether our BMI and the activity levels. Less activity equals higher BMI, which is expected:
+
+```{r}
+ggplot(data=merged_data2, aes(x=TotalActiveMinutes, y=BMI)) + 
+  geom_point() + geom_smooth(color="pink") + labs(title="Activity vs. BMI")
+```
+
+Also, let's group the activity intensity by time of day to see when the users are more active.
+
+```{r}
+hourly_intensity <- hourly_intensities %>%
+  group_by(time) %>%
+  drop_na() %>%
+  summarise(mean_total_int = mean(TotalIntensity))
+```
+
+
+
+Let's take a look when we are the most active. I created a bar graph here:
+
+```{r}
+ggplot(data=hourly_intensity, aes(x=time, y=mean_total_int)) + 
+  geom_col(color="white", fill = "pink") + labs(title="Activity intensity according to time of day", x= "", y = "") +
+      theme(axis.text.x = element_text(angle = 90,vjust = 0.5, hjust= 1))
+
+```
+I can clearly see that we are more active between 6 and 9pm. Guessing that this is the most appropriate time for people to go to gym, actively spent time with the family. This can be good time for the app to send a notification reminding for a workout.
+
+Let's see how our activity depends on different week day:
+
+```{r}
+ggplot(data=merged_data, aes(x=weekday, y=VeryActiveMinutes))+ 
+  geom_bar(stat="identity", fill="pink")+
+  ylab("Activity_week")+
+  xlab("")
+```
+From this bar chart wee see that the activity rises on Tuesdays when significantly drops onto Wednesdays. So, here the developers also should take into account that it must be time to remind users for not giving up.
+
+I strongly recommend to group users by their activity time:
+
+```{r}
+avg_daily_activity <- daily_activity %>%
+  group_by(Id) %>%
+  summarise (mean_activity = mean(VeryActiveMinutes))
+
+summary(avg_daily_activity)
+```
+```{r}
+user_types <- avg_daily_activity %>%
+    mutate(user_type = case_when(
+        mean_activity < 15 ~ "Sedentary",
+        mean_activity >= 15 & mean_activity < 30 ~ "Fairly Active", 
+        mean_activity >= 30 ~ "Active"
+    ))
+
+head(user_types)
+```
+
+
+```{r}
+pc_user_types <- user_types %>%
+  group_by(user_type) %>%
+  summarise(total = n()) %>%
+  mutate(totals = sum(total)) %>%
+  group_by(user_type) %>%
+  summarise(total_percent = scales::percent(total / totals))
+```
+
+
+
+Now let's create a pie chart to see the user type distribution:
+
+```{r}
+user_types_chart <- pc_user_types %>%
+  ggplot(aes(x="",y=total_percent, fill=user_type)) +
+  geom_bar(stat = "identity", width = 1)+
+  coord_polar("y", start=0)+
+  theme_minimal()+
+  theme(axis.title.x= element_blank(),
+        axis.title.y = element_blank(),
+        panel.border = element_blank(), 
+        panel.grid = element_blank(), 
+        axis.ticks = element_blank(),
+        axis.text.x = element_blank(),
+        plot.title = element_text(hjust = 0.5, size=14, face = "bold")) +
+  scale_fill_manual(values = c("pink2","pink1","pink4"),
+                    labels = c("Sedentary", "Fairly Active","Active")) +
+  geom_text(aes(label = total_percent),color="white",
+            position = position_stack(vjust = 0.5))+
+  labs(title="User type distribution")
+
+head(pc_user_types)
+user_types_chart
+```
+The big part of  users are active. But there are 39% of users who could improve their activity levels. Here the developers can take into account targeting these people.
+
+**7. Act** 
+
+1. I recommend health and fitness articles via their Bellabeat app to motivate users
+
+2. Send occasional reminders to encourage activity, healthy habits and routines 
+both before and after typical sleep hours and further promote mindfulness
+
+3. Bellabeat could use the activity by weekdays trend to send out inspiring 
+or motivating prompts to its users on least active days.
